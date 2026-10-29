@@ -143,6 +143,9 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
   font-size:13px;font-family:ui-monospace,Consolas,monospace;resize:vertical;
   background:rgba(0,0,0,.35);color:var(--ink)}
 .hidden{display:none!important}
+#buildTag{position:fixed;right:8px;bottom:6px;z-index:5;font-size:10.5px;letter-spacing:.02em;
+  color:rgba(255,255,255,.34);pointer-events:none;font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)}
 @media (max-width:640px){
   body{padding:10px;font-size:15px}
   .card{padding:16px;border-radius:16px;margin-bottom:10px}
@@ -521,6 +524,9 @@ $("nextBtn").onclick = nextQ;
 $("againBtn").onclick = function () { start(false); };
 $("homeBtn").onclick = function () { 
 
+var BUILD_TAG = "10-29 22:36:02";
+var bt = document.getElementById("buildTag");
+if (bt) bt.textContent = "build " + BUILD_TAG + " · 音量 0.9x / 30%";
 refreshHome(); show("home"); };
 $("submitBtn").onclick = function () { if (Object.keys(sel).length) judge(); };
 $("quitBtn").onclick = function () { if (sess && sess.idx > 0) finish(); else { refreshHome(); show("home"); } };
@@ -648,4 +654,5 @@ var beepBtn = document.getElementById("beepBtn");
 if (beepBtn) beepBtn.onclick = testBeep;
 
 </script>
+<div id="buildTag"></div>
 </body></html>
