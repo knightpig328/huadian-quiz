@@ -520,6 +520,53 @@ $("startBtn").onclick = function () { start(false); };
 $("nextBtn").onclick = nextQ;
 $("againBtn").onclick = function () { start(false); };
 $("homeBtn").onclick = function () { 
+
+refreshHome(); show("home"); };
+$("submitBtn").onclick = function () { if (Object.keys(sel).length) judge(); };
+$("quitBtn").onclick = function () { if (sess && sess.idx > 0) finish(); else { refreshHome(); show("home"); } };
+$("bankSel").onchange = refreshHome;
+$("dirSel").onchange = refreshHome;
+$("wrongBookBtn").onclick = function () { renderBook(); show("book"); };
+$("bookBack").onclick = function () { refreshHome(); show("home"); };
+$("drillBtn").onclick = function () { start(true); };
+$("ioBtn").onclick = function () { $("ioText").value = JSON.stringify(S); show("io"); };
+$("ioBack").onclick = function () { refreshHome(); show("home"); };
+$("copyBtn").onclick = function () {
+  var t = $("ioText"); t.select();
+  try { document.execCommand("copy"); alert("已复制"); } catch (e) { alert("请手动全选复制"); }
+};
+$("importBtn").onclick = function () {
+  try {
+    var o = JSON.parse($("ioText").value);
+    if (!o || !o.archived) { alert("格式不对：缺少 archived"); return; }
+    if (!confirm("导入会覆盖当前进度，确定？")) return;
+    for (var k in DEF) { S[k] = o[k] !== undefined ? o[k] : DEF[k]; }
+    save(); refreshHome(); alert("导入完成");
+  } catch (e) { alert("解析失败：" + e.message); }
+};
+document.addEventListener("keydown", function (e) {
+  if ($("quiz").className.indexOf("hidden") >= 0) return;
+  var k = String(e.key).toUpperCase();
+  if ("ABCD".indexOf(k) >= 0 && !locked) {
+    var btn = document.querySelector('.opt[data-k="' + k + '"]');
+    if (btn) btn.click();
+  }
+  if (e.key === "Enter" && $("nextBtn").className.indexOf("hidden") < 0) nextQ();
+});
+(function () {
+  var bs = $("bankSel"), seen = {};
+  for (var i = 0; i < BANK.length; i++) seen[BANK[i].bank] = 1;
+  var names = Object.keys(seen);
+  var o0 = document.createElement("option"); o0.value = "all"; o0.textContent = "全部题库"; bs.appendChild(o0);
+  for (var j = 0; j < names.length; j++) {
+    var n = names[j], cnt = 0;
+    for (var k = 0; k < BANK.length; k++) if (BANK[k].bank === n) cnt++;
+    var o = document.createElement("option"); o.value = n; o.textContent = n + "（" + cnt + "）"; bs.appendChild(o);
+  }
+})();
+refreshHome(); show("home");
+if (!LS_OK) alert("提示：当前浏览器不允许本地存储，进度不会保存。");
+/*__AUDIO_GLOBAL__*/
 var bgv = document.getElementById("bgv");
 var soundBtn = document.getElementById("soundBtn");
 var volRange = document.getElementById("volRange");
@@ -599,50 +646,6 @@ function testBeep() {
 }
 var beepBtn = document.getElementById("beepBtn");
 if (beepBtn) beepBtn.onclick = testBeep;
-refreshHome(); show("home"); };
-$("submitBtn").onclick = function () { if (Object.keys(sel).length) judge(); };
-$("quitBtn").onclick = function () { if (sess && sess.idx > 0) finish(); else { refreshHome(); show("home"); } };
-$("bankSel").onchange = refreshHome;
-$("dirSel").onchange = refreshHome;
-$("wrongBookBtn").onclick = function () { renderBook(); show("book"); };
-$("bookBack").onclick = function () { refreshHome(); show("home"); };
-$("drillBtn").onclick = function () { start(true); };
-$("ioBtn").onclick = function () { $("ioText").value = JSON.stringify(S); show("io"); };
-$("ioBack").onclick = function () { refreshHome(); show("home"); };
-$("copyBtn").onclick = function () {
-  var t = $("ioText"); t.select();
-  try { document.execCommand("copy"); alert("已复制"); } catch (e) { alert("请手动全选复制"); }
-};
-$("importBtn").onclick = function () {
-  try {
-    var o = JSON.parse($("ioText").value);
-    if (!o || !o.archived) { alert("格式不对：缺少 archived"); return; }
-    if (!confirm("导入会覆盖当前进度，确定？")) return;
-    for (var k in DEF) { S[k] = o[k] !== undefined ? o[k] : DEF[k]; }
-    save(); refreshHome(); alert("导入完成");
-  } catch (e) { alert("解析失败：" + e.message); }
-};
-document.addEventListener("keydown", function (e) {
-  if ($("quiz").className.indexOf("hidden") >= 0) return;
-  var k = String(e.key).toUpperCase();
-  if ("ABCD".indexOf(k) >= 0 && !locked) {
-    var btn = document.querySelector('.opt[data-k="' + k + '"]');
-    if (btn) btn.click();
-  }
-  if (e.key === "Enter" && $("nextBtn").className.indexOf("hidden") < 0) nextQ();
-});
-(function () {
-  var bs = $("bankSel"), seen = {};
-  for (var i = 0; i < BANK.length; i++) seen[BANK[i].bank] = 1;
-  var names = Object.keys(seen);
-  var o0 = document.createElement("option"); o0.value = "all"; o0.textContent = "全部题库"; bs.appendChild(o0);
-  for (var j = 0; j < names.length; j++) {
-    var n = names[j], cnt = 0;
-    for (var k = 0; k < BANK.length; k++) if (BANK[k].bank === n) cnt++;
-    var o = document.createElement("option"); o.value = n; o.textContent = n + "（" + cnt + "）"; bs.appendChild(o);
-  }
-})();
-refreshHome(); show("home");
-if (!LS_OK) alert("提示：当前浏览器不允许本地存储，进度不会保存。");
+
 </script>
 </body></html>
