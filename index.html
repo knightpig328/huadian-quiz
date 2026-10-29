@@ -199,6 +199,7 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
 .volrow.bgm-off .vlabel{opacity:.4}
 .sndtip{margin-top:8px;font-size:12px;color:#f0abfc;display:none}
 .sndtip.show{display:block}
+#beepBtn{font-size:12px;padding:0 10px;height:32px;border-radius:9px;flex:0 0 auto}
 .volrow{display:flex;align-items:center;gap:10px;margin-top:12px}
 .volrow input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;
   background:linear-gradient(90deg,#d946ef,#a855f7);outline:0}
@@ -237,6 +238,7 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
     <span class="muted" style="font-size:12.5px">音量</span>
     <input type="range" id="volRange" min="0" max="100" value="85">
     <span class="vlabel" id="volLabel">85%</span>
+    <button id="beepBtn" class="ghost" style="margin:0">测试</button>
   </div>
   <div class="muted" style="margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:11px;line-height:1.8">
     · 答对 → 自动下一题，记入「已掌握」不再出现<br>
@@ -543,21 +545,39 @@ if (bgv && volRange) {
   syncSoundUI();
   volRange.oninput = function () { applyVol(); syncSoundUI(); };
   soundBtn.onclick = function () {
-    if (bgv.muted) {
-      bgv.muted = false;
-      applyVol();
-      var pr = bgv.play();
-      if (pr && pr.catch) pr.catch(function () {
-        bgv.muted = true; syncSoundUI();
-        soundBtn.textContent = "⚠️ 被浏览器拦截，再点一次";
-      });
-    } else {
-      bgv.muted = true;
+    var willMute = !bgv.muted;
+    bgv.muted = willMute;
+    if (!willMute) {
+      try { bgv.volume = 1.0; } catch (e) {}
+      if (bgv.paused) {
+        var pr = bgv.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      }
+      setTimeout(function () { if (bgv.paused) { bgv.muted = true; syncSoundUI(); } }, 300);
     }
     syncSoundUI();
   };
   bgv.addEventListener("volumechange", syncSoundUI);
 }
+function testBeep() {
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { alert("浏览器不支持 AudioContext"); return; }
+    var ctx = new AC();
+    var osc = ctx.createOscillator();
+    var g = ctx.createGain();
+    osc.type = "sine"; osc.frequency.value = 880;
+    g.gain.value = 0.25;
+    osc.connect(g).connect(ctx.destination);
+    osc.start();
+    g.gain.setValueAtTime(0.25, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.stop(ctx.currentTime + 0.5);
+    osc.onended = function () { try { ctx.close(); } catch (e) {} };
+  } catch (e) { alert("测试音失败：" + e.message); }
+}
+var beepBtn = document.getElementById("beepBtn");
+if (beepBtn) beepBtn.onclick = testBeep;
 refreshHome(); show("home"); };
 $("submitBtn").onclick = function () { if (Object.keys(sel).length) judge(); };
 $("quitBtn").onclick = function () { if (sess && sess.idx > 0) finish(); else { refreshHome(); show("home"); } };
