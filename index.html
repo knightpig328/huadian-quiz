@@ -521,11 +521,29 @@ var bgv = document.getElementById("bgv");
 var soundBtn = document.getElementById("soundBtn");
 var volRange = document.getElementById("volRange");
 var volLabel = document.getElementById("volLabel");
+var actx = null, gainNode = null, mediaSrc = null;
+function ensureAudio() {
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    if (!actx) {
+      actx = new AC();
+      mediaSrc = actx.createMediaElementSource(bgv);
+      gainNode = actx.createGain();
+      gainNode.gain.value = 2.4;
+      mediaSrc.connect(gainNode);
+      gainNode.connect(actx.destination);
+    }
+    if (actx.state === "suspended") actx.resume();
+    return true;
+  } catch (e) { return false; }
+}
 function applyVol() {
   var v = parseInt(volRange.value, 10) / 100;
-  try { bgv.volume = v; } catch (e) {}
+  if (gainNode) { gainNode.gain.value = v * 3.0; }
+  else { try { bgv.volume = v; } catch (e) {} }
   volLabel.textContent = volRange.value + "%";
-  if (!bgv.muted) soundBtn.textContent = "🔊 环境音 " + volRange.value + "%";
+  if (!bgv.muted) soundBtn.textContent = "🔊 环境音 · 开 " + volRange.value + "%";
 }
 var volRow = volRange ? volRange.parentNode : null;
 function syncSoundUI() {
@@ -545,17 +563,14 @@ if (bgv && volRange) {
   syncSoundUI();
   volRange.oninput = function () { applyVol(); syncSoundUI(); };
   soundBtn.onclick = function () {
-    var willMute = !bgv.muted;
-    bgv.muted = willMute;
-    if (!willMute) {
-      try { bgv.volume = 1.0; } catch (e) {}
-      if (bgv.paused) {
-        var pr = bgv.play();
-        if (pr && pr.catch) pr.catch(function () {});
-      }
-      setTimeout(function () { if (bgv.paused) { bgv.muted = true; syncSoundUI(); } }, 300);
-    }
+    if (!bgv.muted) { bgv.muted = true; syncSoundUI(); return; }
+    var ok = ensureAudio();
+    bgv.muted = false;
+    applyVol();
+    var pr = bgv.play();
+    if (pr && pr.catch) pr.catch(function () {});
     syncSoundUI();
+    if (!ok) soundBtn.textContent = "⚠️ 音频被限制";
   };
   bgv.addEventListener("volumechange", syncSoundUI);
 }
