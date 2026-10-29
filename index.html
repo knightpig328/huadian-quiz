@@ -239,8 +239,8 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
   </div>
   <div class="volrow">
     <span class="muted" style="font-size:12.5px">音量</span>
-    <input type="range" id="volRange" min="0" max="100" value="55">
-    <span class="vlabel" id="volLabel">55%</span>
+    <input type="range" id="volRange" min="0" max="100" value="30">
+    <span class="vlabel" id="volLabel">30%</span>
     <button id="beepBtn" class="ghost" style="margin:0">测试</button>
   </div>
   <div class="muted" style="margin-top:12px;background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:11px;line-height:1.8">
@@ -592,7 +592,7 @@ function ensureAudio() {
 }
 function applyVol() {
   var v = parseInt(volRange.value, 10) / 100;
-  if (gainNode && !IS_FILE_PROTO) { gainNode.gain.value = v * 1.8; }
+  if (gainNode && !IS_FILE_PROTO) { gainNode.gain.value = v * 0.9; }
   try { bgv.volume = (IS_FILE_PROTO ? 1.0 : v); } catch (e) {}
   volLabel.textContent = volRange.value + "%";
   if (!bgv.muted) soundBtn.textContent = "🔊 环境音 · 开 " + volRange.value + "%";
