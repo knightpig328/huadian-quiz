@@ -50,7 +50,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 .wrap{max-width:760px;margin:0 auto;position:relative;z-index:1}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;
   box-shadow:var(--sh);margin-bottom:14px;position:relative;overflow:hidden;
-  backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+  backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
   animation:rise .34s cubic-bezier(.2,.8,.3,1) both}
 .card::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(140deg,rgba(255,255,255,.07),transparent 42%);opacity:.7}
@@ -178,10 +178,10 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
        padding-right:max(10px,env(safe-area-inset-right))}
 }
 
-.bgvideo{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;
+.bgvideo{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .45s linear;
   object-position:60% 35%;z-index:0;pointer-events:none;
   filter:brightness(.66) saturate(1.06) contrast(1.03);
-  transform:scale(1.01);will-change:transform}
+  transform:translateZ(0) scale(1.01);will-change:transform;backface-visibility:hidden}
 @media (max-width:640px){.bgvideo{object-position:62% 30%}}
 .bgveil{position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
@@ -216,7 +216,8 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
 </style>
 </head>
 <body>
-<video id="bgv" class="bgvideo" src="bg-loop.mp4" autoplay muted loop playsinline preload="auto"></video>
+<video id="bgv" class="bgvideo" src="bg-loop.mp4" autoplay muted playsinline preload="auto"></video>
+<video id="bgv2" class="bgvideo" src="bg-loop.mp4" muted playsinline preload="auto" style="opacity:0"></video>
 <div class="bgveil"></div><div class="wrap">
 
 <section id="home" class="card">
@@ -536,6 +537,23 @@ $("wrongBookBtn").onclick = function () { renderBook(); show("book"); };
 $("bookBack").onclick = function () { refreshHome(); show("home"); };
 $("drillBtn").onclick = function () { start(true); };
 $("ioBtn").onclick = function () { $("ioText").value = JSON.stringify(S); show("io"); };
+if ($("copyBtn")) {
+  $("copyBtn").onclick = function () {
+    var txt = JSON.stringify(S);
+    $("ioText").value = txt;
+    try {
+      var blob = new Blob([txt], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "hd-progress.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      alert("已下载 hd-progress.json，把它发给我就能同步到手机");
+    } catch (e) {
+      try { navigator.clipboard.writeText(txt); alert("已复制到剪贴板"); } catch (e2) { alert("请手动复制下方文本"); }
+    }
+  };
+}
 $("ioBack").onclick = function () { refreshHome(); show("home"); };
 $("copyBtn").onclick = function () {
   var t = $("ioText"); t.select();
@@ -572,6 +590,51 @@ document.addEventListener("keydown", function (e) {
 })();
 refreshHome(); show("home");
 if (!LS_OK) alert("提示：当前浏览器不允许本地存储，进度不会保存。");
+function pullRemote() {
+  if (location.protocol === "file:") return;
+  fetch("progress.json?t=" + Date.now(), { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (o) {
+      if (!o) return;
+      var ch = false;
+      if (o.archived) for (var k in o.archived) { if (!S.archived[k]) { S.archived[k] = true; ch = true; } }
+      if (o.wrong) for (var k2 in o.wrong) { if (S.wrong[k2] === undefined) { S.wrong[k2] = o.wrong[k2]; ch = true; } }
+      var nums = ["seen", "correct", "rounds", "apSeen", "apCorrect"];
+      for (var i = 0; i < nums.length; i++) {
+        var kk = nums[i];
+        if (typeof o[kk] === "number" && o[kk] > (S[kk] || 0)) { S[kk] = o[kk]; ch = true; }
+      }
+      if (ch) { save(); if (typeof refreshHome === "function") refreshHome(); }
+    })
+    .catch(function () {});
+}
+pullRemote();
+/*__SEAMLESS__*/
+(function () {
+  var A = document.getElementById("bgv"), B = document.getElementById("bgv2");
+  if (!A || !B) return;
+  var cur = A, nxt = B, busy = false;
+  function swap() {
+    if (busy) return;
+    busy = true;
+    try { nxt.currentTime = 0; } catch (e) {}
+    var pr = nxt.play();
+    if (pr && pr.catch) pr.catch(function () {});
+    nxt.style.opacity = "1";
+    cur.style.opacity = "0";
+    var old = cur; cur = nxt; nxt = old;
+    setTimeout(function () {
+      try { nxt.pause(); nxt.currentTime = 0; } catch (e) {}
+      busy = false;
+    }, 480);
+  }
+  setInterval(function () {
+    if (!cur || !cur.duration || busy) return;
+    if (cur.currentTime > cur.duration - 0.5) swap();
+  }, 90);
+  A.style.opacity = "1";
+  A.play().catch(function () {});
+})();
 /*__AUDIO_GLOBAL__*/
 var bgv = document.getElementById("bgv");
 var soundBtn = document.getElementById("soundBtn");
@@ -599,7 +662,7 @@ function ensureAudio() {
 function applyVol() {
   var v = parseInt(volRange.value, 10) / 100;
   if (gainNode && !IS_FILE_PROTO) { gainNode.gain.value = v * 0.9; }
-  try { bgv.volume = (IS_FILE_PROTO ? 1.0 : v); } catch (e) {}
+  try { bgv.volume = v; } catch (e) {}
   volLabel.textContent = volRange.value + "%";
   if (!bgv.muted) soundBtn.textContent = "🔊 环境音 · 开 " + volRange.value + "%";
 }
@@ -624,7 +687,7 @@ if (bgv && volRange) {
     if (!bgv.muted) { bgv.muted = true; syncSoundUI(); return; }
     var ok = ensureAudio();
     bgv.muted = false;
-    try { bgv.volume = IS_FILE_PROTO ? 1.0 : (parseInt(volRange.value, 10) / 100); } catch (e) {}
+    try { bgv.volume = parseInt(volRange.value, 10) / 100; } catch (e) {}
     applyVol();
     var pr = bgv.play();
     if (pr && pr.catch) pr.catch(function () {});
@@ -641,7 +704,8 @@ function testBeep() {
     var osc = ctx.createOscillator();
     var g = ctx.createGain();
     osc.type = "sine"; osc.frequency.value = 880;
-    g.gain.value = 0.25;
+    var bv = parseInt((document.getElementById("volRange") || {}).value || "30", 10) / 100;
+    g.gain.value = Math.max(0.05, bv * 0.35);
     osc.connect(g).connect(ctx.destination);
     osc.start();
     g.gain.setValueAtTime(0.25, ctx.currentTime);
