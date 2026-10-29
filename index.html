@@ -199,7 +199,10 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
 .volrow.bgm-off .vlabel{opacity:.4}
 .sndtip{margin-top:8px;font-size:12px;color:#f0abfc;display:none}
 .sndtip.show{display:block}
-#beepBtn{font-size:12px;padding:0 10px;height:32px;border-radius:9px;flex:0 0 auto}
+#beepBtn{font-size:12px;padding:0 10px;height:30px;border-radius:9px;
+  width:auto;flex:0 0 auto;min-width:0;margin:0;line-height:1}
+@media (max-width:640px){#beepBtn{height:34px;font-size:12.5px;padding:0 12px}}
+.volrow{flex-wrap:nowrap}
 .volrow{display:flex;align-items:center;gap:10px;margin-top:12px}
 .volrow input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;
   background:linear-gradient(90deg,#d946ef,#a855f7);outline:0}
@@ -521,8 +524,10 @@ var bgv = document.getElementById("bgv");
 var soundBtn = document.getElementById("soundBtn");
 var volRange = document.getElementById("volRange");
 var volLabel = document.getElementById("volLabel");
+var IS_FILE_PROTO = (location.protocol === "file:");
 var actx = null, gainNode = null, mediaSrc = null;
 function ensureAudio() {
+  if (IS_FILE_PROTO) return false;
   try {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
@@ -540,8 +545,8 @@ function ensureAudio() {
 }
 function applyVol() {
   var v = parseInt(volRange.value, 10) / 100;
-  if (gainNode) { gainNode.gain.value = v * 3.0; }
-  else { try { bgv.volume = v; } catch (e) {} }
+  if (gainNode && !IS_FILE_PROTO) { gainNode.gain.value = v * 3.0; }
+  try { bgv.volume = (IS_FILE_PROTO ? 1.0 : v); } catch (e) {}
   volLabel.textContent = volRange.value + "%";
   if (!bgv.muted) soundBtn.textContent = "🔊 环境音 · 开 " + volRange.value + "%";
 }
@@ -566,11 +571,12 @@ if (bgv && volRange) {
     if (!bgv.muted) { bgv.muted = true; syncSoundUI(); return; }
     var ok = ensureAudio();
     bgv.muted = false;
+    try { bgv.volume = IS_FILE_PROTO ? 1.0 : (parseInt(volRange.value, 10) / 100); } catch (e) {}
     applyVol();
     var pr = bgv.play();
     if (pr && pr.catch) pr.catch(function () {});
     syncSoundUI();
-    if (!ok) soundBtn.textContent = "⚠️ 音频被限制";
+    if (!ok && !IS_FILE_PROTO) soundBtn.textContent = "⚠️ 音频被限制";
   };
   bgv.addEventListener("volumechange", syncSoundUI);
 }
