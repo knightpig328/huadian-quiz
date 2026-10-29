@@ -185,7 +185,20 @@ textarea{width:100%;height:150px;border:1px solid var(--line);border-radius:var(
     radial-gradient(1300px 800px at 46% 0%, rgba(255,196,120,.08), transparent 64%),
     radial-gradient(1000px 900px at 50% 118%, rgba(120,40,90,.30), transparent 68%),
     linear-gradient(180deg, rgba(11,7,16,.30), rgba(11,7,16,.56))}
-#soundBtn{font-size:13px}
+#soundBtn{font-size:13px;position:relative;transition:background .22s ease,color .22s ease,box-shadow .22s ease,opacity .22s ease}
+#soundBtn.on{background:linear-gradient(100deg,#d946ef,#a855f7)!important;color:#fff!important;
+  border-color:transparent!important;font-weight:650;
+  animation:sndPulse 2.2s ease-in-out infinite}
+#soundBtn.on::after{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;
+  border:1.5px solid rgba(240,171,252,.75);animation:sndRing 2.2s ease-out infinite}
+#soundBtn:not(.on){opacity:.7}
+@keyframes sndPulse{0%,100%{box-shadow:0 0 0 2px rgba(217,70,239,.26),0 8px 22px -10px rgba(217,70,239,.85)}
+  50%{box-shadow:0 0 0 3px rgba(217,70,239,.45),0 14px 34px -8px rgba(217,70,239,1)}}
+@keyframes sndRing{0%{transform:scale(1);opacity:.65}100%{transform:scale(1.16);opacity:0}}
+.volrow.bgm-off input[type=range]{opacity:.3;filter:grayscale(.7)}
+.volrow.bgm-off .vlabel{opacity:.4}
+.sndtip{margin-top:8px;font-size:12px;color:#f0abfc;display:none}
+.sndtip.show{display:block}
 .volrow{display:flex;align-items:center;gap:10px;margin-top:12px}
 .volrow input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;
   background:linear-gradient(90deg,#d946ef,#a855f7);outline:0}
@@ -512,22 +525,38 @@ function applyVol() {
   volLabel.textContent = volRange.value + "%";
   if (!bgv.muted) soundBtn.textContent = "🔊 环境音 " + volRange.value + "%";
 }
+var volRow = volRange ? volRange.parentNode : null;
+function syncSoundUI() {
+  if (!soundBtn) return;
+  if (bgv.muted) {
+    soundBtn.className = "ghost";
+    soundBtn.textContent = "🔇 环境音 · 已关";
+    if (volRow) volRow.className = "volrow bgm-off";
+  } else {
+    soundBtn.className = "ghost on";
+    soundBtn.textContent = "🔊 环境音 · 开 " + volRange.value + "%";
+    if (volRow) volRow.className = "volrow";
+  }
+}
 if (bgv && volRange) {
   applyVol();
-  volRange.oninput = applyVol;
+  syncSoundUI();
+  volRange.oninput = function () { applyVol(); syncSoundUI(); };
   soundBtn.onclick = function () {
     if (bgv.muted) {
       bgv.muted = false;
       applyVol();
-      var pr = bgv.play(); if (pr && pr.catch) pr.catch(function () {});
+      var pr = bgv.play();
+      if (pr && pr.catch) pr.catch(function () {
+        bgv.muted = true; syncSoundUI();
+        soundBtn.textContent = "⚠️ 被浏览器拦截，再点一次";
+      });
     } else {
       bgv.muted = true;
-      soundBtn.textContent = "🔇 环境音";
     }
+    syncSoundUI();
   };
-  bgv.addEventListener("volumechange", function () {
-    if (!bgv.muted) soundBtn.textContent = "🔊 环境音 " + Math.round(bgv.volume * 100) + "%";
-  });
+  bgv.addEventListener("volumechange", syncSoundUI);
 }
 refreshHome(); show("home"); };
 $("submitBtn").onclick = function () { if (Object.keys(sel).length) judge(); };
