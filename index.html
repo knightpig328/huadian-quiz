@@ -553,27 +553,24 @@ $("wrongBookBtn").onclick = function () { renderBook(); show("book"); };
 $("bookBack").onclick = function () { refreshHome(); show("home"); };
 $("drillBtn").onclick = function () { start(true); };
 $("ioBtn").onclick = function () { $("ioText").value = JSON.stringify(S); show("io"); };
-if ($("copyBtn")) {
-  $("copyBtn").onclick = function () {
-    var txt = JSON.stringify(S);
-    $("ioText").value = txt;
-    try {
-      var blob = new Blob([txt], { type: "application/json" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "hd-progress.json";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-      alert("已下载 hd-progress.json，把它发给我就能同步到手机");
-    } catch (e) {
-      try { navigator.clipboard.writeText(txt); alert("已复制到剪贴板"); } catch (e2) { alert("请手动复制下方文本"); }
-    }
-  };
-}
 $("ioBack").onclick = function () { refreshHome(); show("home"); };
 $("copyBtn").onclick = function () {
-  var t = $("ioText"); t.select();
-  try { document.execCommand("copy"); alert("已复制"); } catch (e) { alert("请手动全选复制"); }
+  var txt = JSON.stringify(S);
+  var t = $("ioText");
+  t.value = txt;
+  try { t.focus(); t.select(); t.setSelectionRange(0, txt.length); } catch (e) {}
+  var ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  if (ok) { alert("已复制 " + txt.length + " 个字符\n粘贴发给倩倩就行"); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(function () {
+      alert("已复制 " + txt.length + " 个字符");
+    }).catch(function () {
+      alert("自动复制被拦了\n文本框已全选，按 Ctrl+C");
+    });
+    return;
+  }
+  alert("文本框已全选\n按 Ctrl+C 复制");
 };
 $("importBtn").onclick = function () {
   try {
